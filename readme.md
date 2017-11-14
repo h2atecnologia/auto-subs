@@ -1,12 +1,20 @@
-# Auto Subs
+# auto-subs
 
-A tiny cli tool to download subs from any folder
+A tiny CLI tool to download subs from any folder.
 
-`npm install -g https://github.com/olup/auto-subs.git`
+This is a fork of https://github.com/olup/auto-subs
 
-Then, in the folder where is the video file : 
+```
+npm install -g auto-subs
+```
 
-`auto-subs`
+Then, open a terminal and cd into the directory where your video is, and run:
+
+```
+auto-subs
+```
+
+Then select the best result from the list
 
 ## Options
 

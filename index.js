@@ -1,18 +1,21 @@
-#! /usr/bin/env node
+#!/usr/bin/env node
 
-const fs = require("fs")
-const path = require("path")
-const OS = require("opensubtitles-api")
+'use strict';
+
+const fs = require('fs');
+const OS = require('opensubtitles-api');
 const program = require('commander');
 const chalk = require('chalk');
 const http = require('http');
-const inquirer = require("inquirer")
+const inquirer = require('inquirer');
 const _ = require('lodash');
 
-const openSubtitles = new OS({
-    useragent:'OSTestUserAgentTemp'
-});
+// This seems to be working o_O
+const useragent = 'Butter v1';
 
+const openSubtitles = new OS({
+  useragent,
+});
 
 
 program
@@ -21,71 +24,67 @@ program
   .option('-l, --lang [value]', 'Subtitles languages', 'en')
   .parse(process.argv);
 
-var fileName = ""
-var lang = program.lang
+const programLang = program.lang;
+
+function findSubs(fileName, lang) {
+  if (!fileName) {
+    console.log('No file given or found');
+    return;
+  }
+
+  console.log(`Loading subtitles for ${chalk.green(fileName)} in language ${chalk.green(lang.toUpperCase())}`);
+
+
+  openSubtitles.login().then(() => {
+    openSubtitles.search({
+      sublanguageid: lang,
+      path: fileName,
+      filename: fileName,
+      limit: 5,
+    }).then((subs) => {
+      const langSubs = subs[lang];
+      if (!langSubs || !langSubs.length) {
+        console.log('No subtitles available for desired language');
+        return;
+      }
+
+      inquirer.prompt({
+        type: 'list',
+        name: 'choice',
+        message: `There is ${subs[lang].length} options. Wich one do you choose ?`,
+        choices: _.sortBy(langSubs, sub => -sub.score).map((it, idx) => ({ name: `${it.filename}\t\tScore ${it.score}`, value: idx })),
+      }).then(({ choice }) => {
+        const sub = langSubs[choice];
+
+        const srtName = `${fileName.replace(/\.[^/.]+$/, '')}.srt`;
+
+        const file = fs.createWriteStream(srtName);
+        http.get(sub.url, (response) => {
+          console.log(`Downloaded ${chalk.green(srtName)}`);
+          response.pipe(file);
+        });
+      });
+    });
+  }).catch((err) => {
+    console.error('Unable to contact API', err);
+  });
+}
+
+
+function findFile(cb) {
+  const files = fs.readdirSync('./').filter(file => fs.statSync(file).isFile() && file.match(/.*(\.mp4|\.avi|\.mpeg2|\.mkv)/g));
+
+  inquirer.prompt({
+    type: 'list',
+    name: 'choice',
+    message: 'There is multiple video files in the folder - wich one do you choose ?',
+    choices: files.map((it, idx) => ({ name: it, value: idx })),
+  }).then(({ choice }) => {
+    cb(files[choice], programLang);
+  });
+}
 
 if (program.file) {
-    fileName = program.file
-    findSubs(fileName, lang)
-}
-else findFile( findSubs )
-
-
-
-
-function findSubs(fileName, lang){
-
-    if(!fileName) return console.log('No file given or found')
-
-    console.log(`Loading subtitles for ${chalk.green(fileName)} in language ${chalk.green(lang.toUpperCase())}`)
-
-
-    openSubtitles.login().then(()=>{
-        openSubtitles.search({
-            sublanguageid: lang,
-            path: fileName,
-            filename: fileName,
-            limit : 5
-        }).then((subs)=>{
-            const langSubs = subs[lang];
-            if(!langSubs || !langSubs.length) return console.log('No subtitles available for desired language')
-
-            inquirer.prompt({
-                type : "list",
-                name :"choice",
-                message : `There is ${subs[lang].length} options. Wich one do you choose ?`,
-                choices : _.sortBy(langSubs, sub => -sub.score).map((it,idx)=>{ return {name : `${it.filename}\t\tScore ${it.score}`, value : idx}})
-            }).then( ({choice}) => {
-                var sub = langSubs[choice]
-
-                var srtName = fileName.replace(/\.[^/.]+$/, "")+".srt"
-
-                var file = fs.createWriteStream(srtName);
-                var request = http.get(sub.url, (response) => {
-                    console.log(`Downloaded ${chalk.green(srtName)}`)
-                    response.pipe(file);
-                });
-            });
-
-        })
-    }).catch(err => {
-            console.log('Unable to contact API');
-    });
-}
-
-
-function findFile( cb ){
-    files = fs.readdirSync("./").filter(function (file) {
-        return fs.statSync(file).isFile() && file.match(/.*(\.mp4|\.avi|\.mpeg2|\.mkv)/g)
-    })
-
-    inquirer.prompt({
-            type : "list",
-            name :"choice",
-            message : `There is multiple video files in the folder - wich one do you choose ?`,
-            choices : files.map((it,idx)=>{ return {name : it, value : idx}})
-        }).then( ({choice}) => {
-            cb(files[choice], lang)
-        });
-
-}
+  const fileName = program.file;
+  findSubs(fileName, programLang);
+} else findFile(findSubs);
