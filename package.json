@@ -1,6 +1,6 @@
 {
   "name": "auto-subs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CLI tool to auto load subtitle from OpenSubtitles API",
   "main": "index.js",
   "scripts": {
