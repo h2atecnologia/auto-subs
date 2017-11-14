@@ -1,7 +1,7 @@
 {
   "name": "auto-subs",
   "version": "1.0.0",
-  "description": "Tiny cli tool to auto download subtitles for videos",
+  "description": "CLI tool to auto load subtitle from OpenSubtitles API",
   "main": "index.js",
   "scripts": {
     "test": "eslint ."
